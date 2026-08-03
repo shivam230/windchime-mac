@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import ServiceManagement
 
 // Native transparent floating widget — public AppKit/SwiftUI APIs only.
 let app = NSApplication.shared
@@ -14,9 +15,11 @@ engine.onStrike = { freq, vel, pan in audio.strike(freq, vel, pan) }
 engine.start()
 
 // Breath detection — feeds the wind field, so blowing rings the chimes.
+// Off by default (privacy); the user turns it on with the mic button.
 let mic = MicDetector()
 mic.onLevel = { lvl in engine.micLevel = lvl }
-mic.start()   // triggers the macOS microphone permission prompt on first run
+
+let controller = AppController(engine: engine, audio: audio, mic: mic)
 
 let window = NSWindow(
     contentRect: NSRect(x: 0, y: 0, width: 190, height: 250),
@@ -32,27 +35,34 @@ window.isMovableByWindowBackground = true
 window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 window.minSize = NSSize(width: 110, height: 150)
 
-let hosting = NSHostingView(rootView: ChimeView(engine: engine))
+let hosting = NSHostingView(rootView: RootView(controller: controller))
 hosting.layer?.backgroundColor = NSColor.clear.cgColor
 window.contentView = hosting
+controller.window = window
 window.center()
 window.makeKeyAndOrderFront(nil)
 app.activate(ignoringOtherApps: true)
+
+// Right-click anywhere on the widget → Open at Login / Quit.
+let menuActions = MenuActions()
+NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { e in
+    let menu = NSMenu()
+    let login = NSMenuItem(title: "Open at Login", action: #selector(MenuActions.toggleLogin), keyEquivalent: "")
+    login.target = menuActions
+    login.state = (SMAppService.mainApp.status == .enabled) ? .on : .off
+    menu.addItem(login)
+    menu.addItem(.separator())
+    let quit = NSMenuItem(title: "Quit Windchime", action: #selector(MenuActions.quit), keyEquivalent: "")
+    quit.target = menuActions
+    menu.addItem(quit)
+    if let view = window.contentView { NSMenu.popUpContextMenu(menu, with: e, for: view) }
+    return nil
+}
 
 NSEvent.addLocalMonitorForEvents(matching: .keyDown) { e in
     if e.keyCode == 53 ||
         (e.modifierFlags.contains(.command) && e.charactersIgnoringModifiers == "q") {
         NSApp.terminate(nil)
-        return nil
-    }
-    // number keys 1/2/3 switch wind level (temporary, until controls land)
-    if let c = e.charactersIgnoringModifiers, let n = Int(c), (1...3).contains(n) {
-        engine.setWind(n - 1)
-        return nil
-    }
-    // 'm' toggles the microphone
-    if e.charactersIgnoringModifiers == "m" {
-        mic.isActive ? mic.stop() : mic.start()
         return nil
     }
     return e
