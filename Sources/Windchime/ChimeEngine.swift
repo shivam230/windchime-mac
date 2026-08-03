@@ -177,11 +177,11 @@ final class ChimeEngine: ObservableObject {
             bells[i] = b
         }
 
-        // ---- wind motes: make the invisible wind visible ----
-        // Driven by your breath (micLevel) and the ambient wind speed, so they
-        // drift more in a gust and stream across when you blow.
-        let intensity = max(micLevel, min(1.0, speed) * 0.7)
-        if intensity > 0.14 && motes.count < 18 && Double.random(in: 0...1) < intensity * 0.5 {
+        // ---- wind motes: only shown for your BREATH (mic on + blowing) ----
+        // Not spawned by the ambient/idle wind — they exist to visualize the
+        // real airflow you're adding, so they stay hidden otherwise.
+        let intensity = micLevel
+        if intensity > 0.16 && motes.count < 18 && Double.random(in: 0...1) < intensity * 0.5 {
             motes.append(Mote(x: -0.05,
                               y: 0.18 + Double.random(in: 0...0.55),
                               vx: 0.15 + Double.random(in: 0...1) * 0.5 * (0.4 + intensity),

@@ -52,6 +52,7 @@ final class AppController: ObservableObject {
         f.size = NSSize(width: newW, height: newH)
         w.setFrame(f, display: true)
     }
+    func quit() { NSApp.terminate(nil) }
 }
 
 // Right-click menu actions (needs an NSObject for target/action).
@@ -68,18 +69,31 @@ final class MenuActions: NSObject {
 struct RootView: View {
     @ObservedObject var controller: AppController
     @State private var hover = false
+    @State private var lastMove: CGSize = .zero
     private let accent = Color(red: 0.851, green: 0.678, blue: 0.322)
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            ChimeView(engine: controller.engine)     // stays the top SwiftUI layer
+            // Drag the chime itself to move the window (no move-arrow needed).
+            ChimeView(engine: controller.engine)
+                .gesture(
+                    DragGesture(coordinateSpace: .global)
+                        .onChanged { v in
+                            controller.moveBy(v.translation.width - lastMove.width,
+                                              v.translation.height - lastMove.height)
+                            lastMove = v.translation
+                        }
+                        .onEnded { _ in lastMove = .zero }
+                )
             controlBar
-                .padding(.bottom, 8)
+                .padding(.bottom, 8)            // back at the bottom (previous distance)
                 .opacity(hover ? 1 : 0)
+                .allowsHitTesting(hover)
             DragHandle(system: "arrow.down.right") { dx, dy in controller.resizeBy(dx, dy) }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(3)
                 .opacity(hover ? 1 : 0)
+                .allowsHitTesting(hover)
         }
         .animation(.easeInOut(duration: 0.25), value: hover)
         .onHover { hover = $0 }
@@ -87,9 +101,6 @@ struct RootView: View {
 
     private var controlBar: some View {
         HStack(spacing: 3) {
-            DragHandle(system: "arrow.up.and.down.and.arrow.left.and.right") { dx, dy in
-                controller.moveBy(dx, dy)
-            }
             Button(action: controller.cycleWind) {
                 HStack(spacing: 4) {
                     Image(systemName: "wind")
@@ -101,10 +112,14 @@ struct RootView: View {
                 Image(systemName: controller.micActive ? "mic.fill" : "mic")
                     .foregroundColor(controller.micActive ? accent : .white.opacity(0.8))
             }
-            Slider(value: $controller.volume, in: 0...1).frame(width: 50).tint(accent)
+            Slider(value: $controller.volume, in: 0...1).frame(width: 48).tint(accent)
             Button(action: controller.togglePin) {
                 Image(systemName: controller.pinned ? "pin.fill" : "pin")
                     .foregroundColor(controller.pinned ? accent : .white.opacity(0.8))
+            }
+            Divider().frame(height: 12)
+            Button(action: controller.quit) {
+                Image(systemName: "xmark").foregroundColor(.white.opacity(0.8))
             }
         }
         .buttonStyle(.plain)
@@ -114,6 +129,7 @@ struct RootView: View {
         .padding(.vertical, 5)
         .background(.ultraThinMaterial, in: Capsule())
         .overlay(Capsule().stroke(.white.opacity(0.12)))
+        .fixedSize()
     }
 }
 
