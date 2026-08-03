@@ -1,5 +1,6 @@
 import Foundation
 import QuartzCore
+import Combine
 
 // The simulation — a faithful Swift port of the web app's renderer/app.js:
 // a wind field drives each bell as a damped pendulum; a bell "rings" when it
@@ -32,7 +33,11 @@ struct WindLevel {
     let gustAmp: Double
 }
 
-final class ChimeEngine {
+final class ChimeEngine: ObservableObject {
+    // Bumped every physics tick (60 Hz). The view observes this to repaint,
+    // so drawing stays alive even when the widget isn't the focused window
+    // (unlike TimelineView(.animation), which pauses when unfocused).
+    @Published private(set) var frame: Int = 0
     // Himalayan brass bells (G6 A6 C7 D7 E7)
     private let notes = [1567.98, 1760.0, 2093.0, 2349.32, 2637.02]
 
@@ -160,5 +165,7 @@ final class ChimeEngine {
             if b.ripple > 0 { b.ripple = (b.ripple + dt * 2 > 1) ? 0 : b.ripple + dt * 2 }
             bells[i] = b
         }
+
+        frame &+= 1   // triggers the view to repaint this frame
     }
 }

@@ -5,7 +5,12 @@ import SwiftUI
 let app = NSApplication.shared
 app.setActivationPolicy(.regular)
 
+let audio = AudioEngine()
+audio.volume = 0.7
+audio.start()
+
 let engine = ChimeEngine()
+engine.onStrike = { freq, vel, pan in audio.strike(freq, vel, pan) }
 engine.start()
 
 let window = NSWindow(

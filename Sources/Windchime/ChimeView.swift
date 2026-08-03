@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ChimeView: View {
-    let engine: ChimeEngine
+    @ObservedObject var engine: ChimeEngine
 
     let light = Color(red: 0.925, green: 0.784, blue: 0.475)
     let mid   = Color(red: 0.788, green: 0.612, blue: 0.263)
@@ -11,9 +11,10 @@ struct ChimeView: View {
     let accent = Color(red: 0.851, green: 0.678, blue: 0.322)
 
     var body: some View {
-        TimelineView(.animation) { _ in
-            Canvas { ctx, size in draw(ctx, size) }
-        }
+        // Reading engine.frame makes the body depend on it, so the Canvas
+        // repaints every physics tick — independent of window focus.
+        let _ = engine.frame
+        Canvas { ctx, size in draw(ctx, size) }
     }
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
