@@ -1,0 +1,164 @@
+import Foundation
+import QuartzCore
+
+// The simulation — a faithful Swift port of the web app's renderer/app.js:
+// a wind field drives each bell as a damped pendulum; a bell "rings" when it
+// swings hard enough, gated so the rate/feel matches the wind level.
+
+struct Bell {
+    var az: Double            // angle around the ring
+    var omega: Double         // pendulum natural frequency
+    var freq: Double          // musical pitch (Hz)
+    var swing: Double = 0
+    var swingV: Double = 0
+    var glow: Double = 0      // 0..1 flash right after a strike
+    var ripple: Double = 0    // 0..1 expanding ring after a strike
+    var nextOk: Double = 0    // earliest sim-time this bell may ring again
+    var last: Double = -9
+}
+
+struct WindLevel {
+    let id: String
+    let label: String
+    let base: Double
+    let pumpMul: Double
+    let thresh: Double
+    let gateMin: Double
+    let gateRand: Double
+    let perBellMin: Double
+    let perBellRand: Double
+    let gustMin: Double
+    let gustMax: Double
+    let gustAmp: Double
+}
+
+final class ChimeEngine {
+    // Himalayan brass bells (G6 A6 C7 D7 E7)
+    private let notes = [1567.98, 1760.0, 2093.0, 2349.32, 2637.02]
+
+    let winds = [
+        WindLevel(id: "calm",   label: "Calm",   base: 0.17, pumpMul: 0.75, thresh: 2.3,
+                  gateMin: 3.5, gateRand: 11, perBellMin: 3.0, perBellRand: 8.0,
+                  gustMin: 6, gustMax: 16, gustAmp: 1.6),
+        WindLevel(id: "breeze", label: "Breeze", base: 0.36, pumpMul: 1.15, thresh: 2.3,
+                  gateMin: 1.1, gateRand: 3.6, perBellMin: 1.4, perBellRand: 5.0,
+                  gustMin: 6, gustMax: 16, gustAmp: 1.6),
+        WindLevel(id: "windy",  label: "Windy",  base: 0.62, pumpMul: 1.9, thresh: 2.3,
+                  gateMin: 0.45, gateRand: 1.7, perBellMin: 0.7, perBellRand: 2.5,
+                  gustMin: 3, gustMax: 8, gustAmp: 2.4),
+    ]
+
+    var windIndex = 1
+    var micLevel = 0.0                 // 0..1, fed by MicDetector later
+    var onStrike: ((Double, Double, Double) -> Void)?  // freq, vel, pan
+
+    private(set) var bells: [Bell] = []
+
+    // wind field state
+    private var fx = 0.0, fz = 0.0, pump = 0.0, gust = 0.0
+    private var gustAmp = 0.0, gustDur = 1.0, gustT = 99.0, nextGust = 3.0
+
+    // ring-rate gates
+    private var nextWindOk = 2.0
+    private var recentRings: [Double] = []
+
+    private var timer: Timer?
+    private var lastT = CACurrentMediaTime()
+    var simT: Double { CACurrentMediaTime() }
+
+    init() { buildBells() }
+
+    private func buildBells() {
+        let n = notes.count
+        bells = (0..<n).map { i in
+            let az = Double(i) / Double(n) * .pi * 2 + 0.55
+            let omega = 2 * .pi * (0.5 + 0.35 * Double((i * 7919) % 100) / 100)
+            return Bell(az: az, omega: omega, freq: notes[i],
+                        nextOk: Double.random(in: 0...3))
+        }
+    }
+
+    func start() {
+        lastT = CACurrentMediaTime()
+        let t = Timer(timeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
+    }
+
+    func setWind(_ i: Int) {
+        windIndex = ((i % winds.count) + winds.count) % winds.count
+        // react immediately: open the gate and stir the bells
+        nextWindOk = min(nextWindOk, simT + 0.4)
+        let kick = winds[windIndex].pumpMul
+        for k in bells.indices { bells[k].swingV += Double.random(in: -1...1) * kick * 2.4 }
+    }
+
+    private func smooth(_ t: Double, _ s: Double) -> Double {
+        (sin(t * 0.9 + s) + sin(t * 2.33 + s * 1.7) + sin(t * 0.37 + s * 0.31)) / 3
+    }
+
+    private func canRing(_ n: Int = 1) -> Bool {
+        recentRings = recentRings.filter { simT - $0 < 2.2 }
+        return recentRings.count + n <= 3
+    }
+
+    private func tick() {
+        let now = CACurrentMediaTime()
+        var dt = now - lastT
+        lastT = now
+        if dt > 0.05 { dt = 0.05 }
+        let t = now
+        let w = winds[windIndex]
+
+        // ---- wind field ----
+        gustT += dt
+        if t > nextGust {
+            gustAmp = w.base * w.gustAmp * (1 + Double.random(in: 0...1))
+            gustDur = 1.6 + Double.random(in: 0...2)
+            gustT = 0
+            nextGust = t + w.gustMin + Double.random(in: 0...(w.gustMax - w.gustMin))
+        }
+        gust = 0
+        if gustT < gustDur {
+            let p = gustT / gustDur
+            gust = gustAmp * pow(sin(.pi * p), 2)
+        }
+        let turb = 0.8 + 0.35 * smooth(t * 0.9, 5.2)
+        let base = w.base * (0.3 + 0.7 * (0.5 + 0.5 * smooth(t * 0.13, 1.1)))
+        let speed = (base + gust) * turb
+        pump = w.base * w.pumpMul * (0.55 + 0.45 * (0.5 + 0.5 * smooth(t * 0.21, 3.3)))
+             + micLevel * 0.5 + gust * 0.35
+        let dirA = 0.7 * sin(t * 0.05) + 0.35 * sin(t * 0.131 + 2)
+        fx = speed * cos(dirA * 0.6)
+        fz = speed * sin(dirA) * 0.5
+
+        // ---- bells ----
+        for i in bells.indices {
+            var b = bells[i]
+            let drive = fx * (0.5 + 0.13 * Double(i))
+                      + fz * 0.2 * sin(b.az)
+                      + pump * 7 * sin(t * b.omega + b.az)
+            let a = drive * 2.2 - b.omega * b.omega * b.swing - 0.7 * b.swingV
+            b.swingV += a * dt
+            b.swing += b.swingV * dt
+
+            if abs(b.swingV) > w.thresh && t > b.nextOk
+                && (t > nextWindOk || micLevel > 0.2) && canRing() {
+                let vel = min(0.5, 0.1 + abs(b.swingV) / 55)
+                let pan = max(-0.7, min(0.7, sin(b.az) * 0.6))
+                onStrike?(b.freq, vel, pan)
+                recentRings.append(t)
+                b.glow = 1
+                b.ripple = 0.01
+                b.last = t
+                b.nextOk = t + w.perBellMin + pow(Double.random(in: 0...1), 1.5) * w.perBellRand
+                nextWindOk = t + w.gateMin + pow(Double.random(in: 0...1), 1.6) * w.gateRand
+            }
+            b.glow = max(0, b.glow - dt * 1.6)
+            if b.ripple > 0 { b.ripple = (b.ripple + dt * 2 > 1) ? 0 : b.ripple + dt * 2 }
+            bells[i] = b
+        }
+    }
+}
