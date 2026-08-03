@@ -73,30 +73,34 @@ struct RootView: View {
     private let accent = Color(red: 0.851, green: 0.678, blue: 0.322)
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            // Drag the chime itself to move the window (no move-arrow needed).
-            ChimeView(engine: controller.engine)
-                .gesture(
-                    DragGesture(coordinateSpace: .global)
-                        .onChanged { v in
-                            controller.moveBy(v.translation.width - lastMove.width,
-                                              v.translation.height - lastMove.height)
-                            lastMove = v.translation
-                        }
-                        .onEnded { _ in lastMove = .zero }
-                )
-            controlBar
-                .padding(.bottom, 8)            // back at the bottom (previous distance)
-                .opacity(hover ? 1 : 0)
-                .allowsHitTesting(hover)
-            DragHandle(system: "arrow.down.right") { dx, dy in controller.resizeBy(dx, dy) }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                .padding(3)
-                .opacity(hover ? 1 : 0)
-                .allowsHitTesting(hover)
+        GeometryReader { geo in
+            let barY = ChimeView.chimeBottomY(geo.size) + 18   // just under the bells
+            ZStack(alignment: .topLeading) {
+                // Drag the chime itself to move the window (no move-arrow needed).
+                ChimeView(engine: controller.engine)
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .gesture(
+                        DragGesture(coordinateSpace: .global)
+                            .onChanged { v in
+                                controller.moveBy(v.translation.width - lastMove.width,
+                                                  v.translation.height - lastMove.height)
+                                lastMove = v.translation
+                            }
+                            .onEnded { _ in lastMove = .zero }
+                    )
+                controlBar
+                    .position(x: geo.size.width / 2, y: barY)
+                    .opacity(hover ? 1 : 0)
+                    .allowsHitTesting(hover)
+                DragHandle(system: "arrow.down.right") { dx, dy in controller.resizeBy(dx, dy) }
+                    .position(x: geo.size.width - 12, y: geo.size.height - 12)
+                    .opacity(hover ? 1 : 0)
+                    .allowsHitTesting(hover)
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
+            .animation(.easeInOut(duration: 0.25), value: hover)
+            .onHover { hover = $0 }
         }
-        .animation(.easeInOut(duration: 0.25), value: hover)
-        .onHover { hover = $0 }
     }
 
     private var controlBar: some View {

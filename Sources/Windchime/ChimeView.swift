@@ -10,6 +10,16 @@ struct ChimeView: View {
     let stringC = Color(red: 0.24, green: 0.17, blue: 0.06).opacity(0.85)
     let accent = Color(red: 0.851, green: 0.678, blue: 0.322)
 
+    // Y of the lowest point of the chime, so the control bar can sit just below.
+    static func chimeBottomY(_ size: CGSize) -> CGFloat {
+        let ring = min(size.width * 0.24, 44)
+        let canR = ring + 6
+        let y0 = size.height * 0.12
+        let maxLen: CGFloat = 44 + 24 * 0.8   // longest string in the layout
+        let maxBR: CGFloat = 10               // bell radius at full scale
+        return y0 + canR * 0.2 + maxLen + maxBR
+    }
+
     var body: some View {
         // Reading engine.frame makes the body depend on it, so the Canvas
         // repaints every physics tick — independent of window focus.
