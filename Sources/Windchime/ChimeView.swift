@@ -21,8 +21,8 @@ struct ChimeView: View {
         let w = size.width, h = size.height
         let cx = w / 2
         let y0 = h * 0.12
-        let ring = min(w * 0.30, 60)
-        let canR = ring + 10
+        let ring = min(w * 0.24, 44)   // tighter: bells closer together
+        let canR = ring + 6            // narrower canopy on top
 
         // canopy
         var canopy = Path()
@@ -38,6 +38,16 @@ struct ChimeView: View {
         hang.addLine(to: CGPoint(x: cx, y: y0 - canR * 0.2))
         ctx.stroke(hang, with: .color(stringC), lineWidth: 1.4)
 
+        // wind motes behind the chime
+        for m in engine.motes {
+            let a = min(0.22, m.life * 0.22)
+            let r: CGFloat = 1.4
+            var p = Path()
+            p.addEllipse(in: CGRect(x: CGFloat(m.x) * w - r, y: CGFloat(m.y) * h - r,
+                                    width: r * 2, height: r * 2))
+            ctx.fill(p, with: .color(.white.opacity(a)))
+        }
+
         let bells = engine.bells
         let order = bells.indices.sorted { cos(bells[$0].az) < cos(bells[$1].az) }
 
@@ -46,9 +56,9 @@ struct ChimeView: View {
             let depth = cos(b.az)
             let scale = 0.85 + 0.15 * depth
             let bx = cx + CGFloat(sin(b.az)) * ring + CGFloat(b.swing) * 1.6
-            let len = CGFloat(60 + 34 * (Double(i) * 13).truncatingRemainder(dividingBy: 5) / 5)
+            let len = CGFloat(44 + 24 * (Double(i) * 13).truncatingRemainder(dividingBy: 5) / 5)
             let by = y0 + canR * 0.2 + len
-            let bR = 11 * scale
+            let bR = 10 * scale
 
             var s = Path()
             s.move(to: CGPoint(x: cx + CGFloat(sin(b.az)) * ring * 0.9, y: y0))

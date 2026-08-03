@@ -18,6 +18,16 @@ struct Bell {
     var last: Double = -9
 }
 
+// A drifting speck that visualizes the (invisible) wind. Normalized 0…1 space
+// so the view can scale it to any window size.
+struct Mote {
+    var x: Double
+    var y: Double
+    var vx: Double
+    var life: Double
+    var wob: Double
+}
+
 struct WindLevel {
     let id: String
     let label: String
@@ -58,6 +68,7 @@ final class ChimeEngine: ObservableObject {
     var onStrike: ((Double, Double, Double) -> Void)?  // freq, vel, pan
 
     private(set) var bells: [Bell] = []
+    private(set) var motes: [Mote] = []
 
     // wind field state
     private var fx = 0.0, fz = 0.0, pump = 0.0, gust = 0.0
@@ -165,6 +176,24 @@ final class ChimeEngine: ObservableObject {
             if b.ripple > 0 { b.ripple = (b.ripple + dt * 2 > 1) ? 0 : b.ripple + dt * 2 }
             bells[i] = b
         }
+
+        // ---- wind motes: make the invisible wind visible ----
+        // Driven by your breath (micLevel) and the ambient wind speed, so they
+        // drift more in a gust and stream across when you blow.
+        let intensity = max(micLevel, min(1.0, speed) * 0.7)
+        if intensity > 0.14 && motes.count < 18 && Double.random(in: 0...1) < intensity * 0.5 {
+            motes.append(Mote(x: -0.05,
+                              y: 0.18 + Double.random(in: 0...0.55),
+                              vx: 0.15 + Double.random(in: 0...1) * 0.5 * (0.4 + intensity),
+                              life: 1,
+                              wob: Double.random(in: 0...6)))
+        }
+        for i in motes.indices {
+            motes[i].x += motes[i].vx * dt * (0.6 + speed)
+            motes[i].y += sin(t * 3 + motes[i].wob) * 0.05 * dt
+            motes[i].life -= dt * 0.5
+        }
+        motes.removeAll { $0.life <= 0 || $0.x > 1.1 }
 
         frame &+= 1   // triggers the view to repaint this frame
     }
