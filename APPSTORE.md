@@ -5,6 +5,24 @@ Store, with our current status. Researched Aug 2026.
 
 Legend:  ✅ done · 🔨 I can do (no account needed) · 🔑 needs your Apple Developer account · ⚠️ risk to plan for
 
+## Prepped now (no account needed) — Aug 2026
+
+- ✅ **App Sandbox + microphone entitlements** (`Windchime.entitlements`), signed
+  in via `make-app.sh`. Verified: launches sandboxed, no violations.
+- ✅ **Privacy manifest** (`PrivacyInfo.xcprivacy`) — declares no data collection
+  + the UserDefaults required-reason (CA92.1). Bundled into the app.
+- ✅ **Universal binary** — now builds `x86_64 + arm64` (Intel + Apple Silicon).
+- ✅ **App icon** bundled.
+- ✅ **Privacy policy page** — `docs/privacy.html` (host free via GitHub Pages →
+  `https://shivam230.github.io/windchime-mac/privacy.html`).
+- 🟡 **Screenshots** — a reference capture is in `docs/screenshots/`; final
+  marketing shots want a clean desktop at an approved size (see §2).
+
+Still requires your account: distribution signing, App Store Connect listing,
+and wrapping the build as an uploadable archive (§1, §2, §4).
+
+---
+
 ---
 
 ## 0. Prerequisite

@@ -5,13 +5,16 @@
 set -e
 cd "$(dirname "$0")"
 
-swift build -c release
+# Universal build (Intel + Apple Silicon) for App Store parity.
+swift build -c release --arch arm64 --arch x86_64
+BIN_DIR=$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)
 
 APP="Windchime.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp .build/release/Windchime "$APP/Contents/MacOS/Windchime"
+cp "$BIN_DIR/Windchime" "$APP/Contents/MacOS/Windchime"
 cp build/icon.icns "$APP/Contents/Resources/icon.icns"
+cp PrivacyInfo.xcprivacy "$APP/Contents/Resources/PrivacyInfo.xcprivacy"
 
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -33,5 +36,7 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-codesign --force --deep --sign - "$APP" 2>/dev/null || true
-echo "built $APP"
+# Ad-hoc sign WITH the sandbox + mic entitlements, so the local build behaves
+# like the App Store one (real distribution re-signs with your Apple cert).
+codesign --force --deep --sign - --entitlements Windchime.entitlements "$APP" 2>/dev/null || true
+echo "built $APP ($(lipo -archs "$APP/Contents/MacOS/Windchime" 2>/dev/null))"
