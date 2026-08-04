@@ -12,11 +12,12 @@ struct ChimeView: View {
 
     // Y of the lowest point of the chime, so the control bar can sit just below.
     static func chimeBottomY(_ size: CGSize) -> CGFloat {
-        let ring = min(size.width * 0.24, 44)
-        let canR = ring + 6
-        let y0 = size.height * 0.12
-        let maxLen: CGFloat = 44 + 24 * 0.8   // longest string in the layout
-        let maxBR: CGFloat = 10               // bell radius at full scale
+        let u = min(size.width / 190, size.height / 250)
+        let ringPx = min(size.width * 0.24, 58 * u)
+        let canR = ringPx + 8 * u
+        let y0 = size.height * 0.085
+        let maxLen = (58 + 105 * 0.8) * u    // longest string (max frac ≈ 0.8)
+        let maxBR = 11 * u                   // bell radius at full scale
         return y0 + canR * 0.2 + maxLen + maxBR
     }
 
@@ -29,24 +30,26 @@ struct ChimeView: View {
 
     private func draw(_ ctx: GraphicsContext, _ size: CGSize) {
         let w = size.width, h = size.height
+        let u = min(w / 190, h / 250)      // same design basis as the web build
         let cx = w / 2
-        let y0 = h * 0.12
-        let ring = min(w * 0.24, 44)   // tighter: bells closer together
-        let canR = ring + 6            // narrower canopy on top
+        let y0 = h * 0.085
+        let ringPx = min(w * 0.24, 58 * u)
+        let canR = ringPx + 8 * u
+
+        // hanger
+        var hang = Path()
+        hang.move(to: CGPoint(x: cx, y: 0))
+        hang.addLine(to: CGPoint(x: cx, y: y0 - 6 * u))
+        ctx.stroke(hang, with: .color(stringC), lineWidth: 1.1 * u)
 
         // canopy
         var canopy = Path()
-        canopy.addEllipse(in: CGRect(x: cx - canR, y: y0 - canR * 0.22,
-                                     width: canR * 2, height: canR * 0.44))
+        canopy.addEllipse(in: CGRect(x: cx - canR, y: y0 - canR * 0.24,
+                                     width: canR * 2, height: canR * 0.48))
         ctx.fill(canopy, with: .linearGradient(
             Gradient(colors: [dark, canopyC, light.opacity(0.6), dark]),
             startPoint: CGPoint(x: cx - canR, y: y0),
             endPoint: CGPoint(x: cx + canR, y: y0)))
-
-        var hang = Path()
-        hang.move(to: CGPoint(x: cx, y: 0))
-        hang.addLine(to: CGPoint(x: cx, y: y0 - canR * 0.2))
-        ctx.stroke(hang, with: .color(stringC), lineWidth: 1.4)
 
         // wind motes behind the chime
         for m in engine.motes {
@@ -65,15 +68,16 @@ struct ChimeView: View {
             let b = bells[i]
             let depth = cos(b.az)
             let scale = 0.85 + 0.15 * depth
-            let bx = cx + CGFloat(sin(b.az)) * ring + CGFloat(b.swing) * 1.6
-            let len = CGFloat(44 + 24 * (Double(i) * 13).truncatingRemainder(dividingBy: 5) / 5)
+            let bx = cx + CGFloat(sin(b.az)) * ringPx + CGFloat(b.swing) * u * 1.6
+            let frac = (b.freq * 13).truncatingRemainder(dividingBy: 5) / 5
+            let len = (58 + 105 * CGFloat(frac)) * u
             let by = y0 + canR * 0.2 + len
-            let bR = 10 * scale
+            let bR = 11 * u * scale
 
             var s = Path()
-            s.move(to: CGPoint(x: cx + CGFloat(sin(b.az)) * ring * 0.9, y: y0))
+            s.move(to: CGPoint(x: cx + CGFloat(sin(b.az)) * ringPx * 0.9, y: y0 + 2 * u))
             s.addLine(to: CGPoint(x: bx, y: by - bR))
-            ctx.stroke(s, with: .color(stringC), lineWidth: 0.9)
+            ctx.stroke(s, with: .color(stringC), lineWidth: 0.9 * u)
 
             var bctx = ctx
             bctx.translateBy(x: bx, y: by)
@@ -111,7 +115,7 @@ struct ChimeView: View {
             // expanding ripple on strike
             if b.ripple > 0 {
                 var r = Path()
-                let rr = bR + CGFloat(b.ripple) * 26
+                let rr = bR + CGFloat(b.ripple) * 26 * u
                 r.addEllipse(in: CGRect(x: bx - rr, y: by - rr, width: rr * 2, height: rr * 2))
                 ctx.stroke(r, with: .color(accent.opacity((1 - b.ripple) * 0.3)), lineWidth: 1.2)
             }

@@ -93,7 +93,7 @@ struct RootView: View {
                     .opacity(hover ? 1 : 0)
                     .allowsHitTesting(hover)
                 DragHandle(system: "arrow.down.right") { dx, dy in controller.resizeBy(dx, dy) }
-                    .position(x: geo.size.width - 12, y: geo.size.height - 12)
+                    .position(x: geo.size.width - 12, y: barY + 22)   // just under the toolbar
                     .opacity(hover ? 1 : 0)
                     .allowsHitTesting(hover)
             }

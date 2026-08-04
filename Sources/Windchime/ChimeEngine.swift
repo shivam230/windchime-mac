@@ -86,10 +86,14 @@ final class ChimeEngine: ObservableObject {
 
     private func buildBells() {
         let n = notes.count
+        // Same shuffle as the web build so neighbouring bells aren't neighbouring
+        // notes; frequency/omega key off the note index, not the position.
+        let order = [0, 3, 1, 4, 2]
         bells = (0..<n).map { i in
+            let noteIdx = order[i]
             let az = Double(i) / Double(n) * .pi * 2 + 0.55
-            let omega = 2 * .pi * (0.5 + 0.35 * Double((i * 7919) % 100) / 100)
-            return Bell(az: az, omega: omega, freq: notes[i],
+            let omega = 2 * .pi * (0.5 + 0.35 * Double((noteIdx * 7919) % 100) / 100)
+            return Bell(az: az, omega: omega, freq: notes[noteIdx],
                         nextOk: Double.random(in: 0...3))
         }
     }
