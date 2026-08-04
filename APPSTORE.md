@@ -13,8 +13,8 @@ Legend:  ✅ done · 🔨 I can do (no account needed) · 🔑 needs your Apple 
   + the UserDefaults required-reason (CA92.1). Bundled into the app.
 - ✅ **Universal binary** — now builds `x86_64 + arm64` (Intel + Apple Silicon).
 - ✅ **App icon** bundled.
-- ✅ **Privacy policy page** — `docs/privacy.html` (host free via GitHub Pages →
-  `https://shivam230.github.io/windchime-mac/privacy.html`).
+- ✅ **Privacy policy** — **LIVE** at
+  https://shivam230.github.io/windchime-mac/privacy.html (GitHub Pages).
 - 🟡 **Screenshots** — a reference capture is in `docs/screenshots/`; final
   marketing shots want a clean desktop at an approved size (see §2).
 
