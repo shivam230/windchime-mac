@@ -39,7 +39,11 @@ let hosting = NSHostingView(rootView: RootView(controller: controller))
 hosting.layer?.backgroundColor = NSColor.clear.cgColor
 window.contentView = hosting
 controller.window = window
-window.center()
+// Remember where the user last left the widget; center only on first ever run.
+let frameKey = "WindchimeMain"
+let hadSavedFrame = UserDefaults.standard.string(forKey: "NSWindow Frame \(frameKey)") != nil
+window.setFrameAutosaveName(frameKey)
+if !hadSavedFrame { window.center() }
 window.makeKeyAndOrderFront(nil)
 app.activate(ignoringOtherApps: true)
 

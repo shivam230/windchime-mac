@@ -79,6 +79,7 @@ final class ChimeEngine: ObservableObject {
     private var recentRings: [Double] = []
 
     private var timer: Timer?
+    private var tickCount = 0
     private var lastT = CACurrentMediaTime()
     var simT: Double { CACurrentMediaTime() }
 
@@ -251,6 +252,10 @@ final class ChimeEngine: ObservableObject {
         }
         motes.removeAll { $0.life <= 0 || $0.x > 1.1 }
 
-        frame &+= 1   // triggers the view to repaint this frame
+        // Physics runs at 60 Hz (accurate strike timing), but we only trigger a
+        // repaint every other tick — 30 fps is plenty for the gentle motion and
+        // roughly halves CPU / battery from the transparent-window compositing.
+        tickCount &+= 1
+        if tickCount & 1 == 0 { frame &+= 1 }
     }
 }
