@@ -69,7 +69,8 @@ final class MenuActions: NSObject {
 struct RootView: View {
     @ObservedObject var controller: AppController
     @State private var hover = false
-    @State private var lastMove: CGSize = .zero
+    @State private var moveStartMouse: CGPoint? = nil
+    @State private var moveStartOrigin: CGPoint? = nil
     @State private var lastPtr: CGPoint? = nil
     @State private var lastPtrT = Date()
     @State private var ptrV = CGSize.zero
@@ -84,13 +85,26 @@ struct RootView: View {
                     .frame(width: geo.size.width, height: geo.size.height)
                     .contentShape(Rectangle())
                     .gesture(
-                        DragGesture(coordinateSpace: .global)
-                            .onChanged { v in
-                                controller.moveBy(v.translation.width - lastMove.width,
-                                                  v.translation.height - lastMove.height)
-                                lastMove = v.translation
+                        // Track the ABSOLUTE screen mouse position, not window-
+                        // relative translation, so moving the window can't feed
+                        // back into the measurement (which caused the runaway).
+                        DragGesture(minimumDistance: 4)
+                            .onChanged { _ in
+                                guard let w = controller.window else { return }
+                                if moveStartMouse == nil {
+                                    moveStartMouse = NSEvent.mouseLocation
+                                    moveStartOrigin = w.frame.origin
+                                }
+                                if let sm = moveStartMouse, let so = moveStartOrigin {
+                                    let cur = NSEvent.mouseLocation
+                                    w.setFrameOrigin(NSPoint(x: so.x + (cur.x - sm.x),
+                                                             y: so.y + (cur.y - sm.y)))
+                                }
                             }
-                            .onEnded { _ in lastMove = .zero }
+                            .onEnded { _ in
+                                moveStartMouse = nil
+                                moveStartOrigin = nil
+                            }
                     )
                     .simultaneousGesture(
                         SpatialTapGesture(coordinateSpace: .local)
@@ -170,12 +184,12 @@ struct RootView: View {
     }
 }
 
-// A grab area that reports incremental drag deltas in global (screen) space,
-// so moving/resizing the window doesn't feed back into the gesture.
+// A grab handle that reports incremental deltas from the ABSOLUTE screen mouse
+// position, so resizing the window can't feed back into the measurement.
 struct DragHandle: View {
     let system: String
-    let onDrag: (CGFloat, CGFloat) -> Void
-    @State private var last: CGSize = .zero
+    let onDrag: (CGFloat, CGFloat) -> Void   // dx right+, dy down+
+    @State private var lastMouse: CGPoint? = nil
 
     var body: some View {
         Image(systemName: system)
@@ -184,13 +198,15 @@ struct DragHandle: View {
             .frame(width: 18, height: 18)
             .contentShape(Rectangle())
             .gesture(
-                DragGesture(coordinateSpace: .global)
-                    .onChanged { v in
-                        onDrag(v.translation.width - last.width,
-                               v.translation.height - last.height)
-                        last = v.translation
+                DragGesture(minimumDistance: 1)
+                    .onChanged { _ in
+                        let cur = NSEvent.mouseLocation
+                        if let lm = lastMouse {
+                            onDrag(cur.x - lm.x, -(cur.y - lm.y))   // screen y is bottom-up
+                        }
+                        lastMouse = cur
                     }
-                    .onEnded { _ in last = .zero }
+                    .onEnded { _ in lastMouse = nil }
             )
     }
 }
