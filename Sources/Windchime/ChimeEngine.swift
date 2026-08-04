@@ -115,6 +115,58 @@ final class ChimeEngine: ObservableObject {
         for k in bells.indices { bells[k].swingV += Double.random(in: -1...1) * kick * 2.4 }
     }
 
+    // ---- cursor interaction (ported from the web pointerForces) ----
+    var viewW: Double = 190
+    var viewH: Double = 250
+
+    private func fireBell(_ i: Int, vel: Double, swingImpulse: Double) {
+        guard canRing() else { return }
+        let pan = max(-0.7, min(0.7, sin(bells[i].az) * 0.6))
+        onStrike?(bells[i].freq, vel, pan)
+        recentRings.append(simT)
+        bells[i].glow = 1
+        bells[i].ripple = 0.01
+        bells[i].last = simT
+        bells[i].swingV += swingImpulse
+    }
+
+    // Brushing the cursor across the bells strums them (faster = louder).
+    func brush(x: Double, y: Double, vx: Double, vy: Double) {
+        let sp = (vx * vx + vy * vy).squareRoot()
+        if sp < 320 { return }
+        let u = min(viewW / 190, viewH / 250)
+        let cx = viewW / 2
+        let ringPx = min(viewW * 0.24, 58 * u)
+        let y0 = viewH * 0.085
+        let left = cx - ringPx - 30 * u, right = cx + ringPx + 30 * u
+        if x < left - 30 || x > right + 30 || y < y0 || y > viewH * 0.85 + 30 { return }
+        let hitW = 16 * u
+        for i in bells.indices {
+            let tx = cx + sin(bells[i].az) * ringPx + bells[i].swing * u * 1.6
+            if abs(x - tx) < hitW && simT - bells[i].last > 0.17 {
+                let vel = min(0.85, 0.14 + sp / 3200)
+                fireBell(i, vel: vel, swingImpulse: (vx >= 0 ? 1.0 : -1.0) * (2 + sp / 350))
+            }
+        }
+    }
+
+    // Clicking rings the nearest bell.
+    func tap(x: Double, y: Double) {
+        let u = min(viewW / 190, viewH / 250)
+        let cx = viewW / 2
+        let ringPx = min(viewW * 0.24, 58 * u)
+        var best = -1
+        var bestD = 1e9
+        for i in bells.indices {
+            let tx = cx + sin(bells[i].az) * ringPx + bells[i].swing * u * 1.6
+            let d = abs(x - tx)
+            if d < bestD { bestD = d; best = i }
+        }
+        if best >= 0 && bestD < 26 * u && simT - bells[best].last > 0.12 {
+            fireBell(best, vel: 0.5, swingImpulse: 3)
+        }
+    }
+
     private func smooth(_ t: Double, _ s: Double) -> Double {
         (sin(t * 0.9 + s) + sin(t * 2.33 + s * 1.7) + sin(t * 0.37 + s * 0.31)) / 3
     }

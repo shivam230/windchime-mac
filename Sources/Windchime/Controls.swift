@@ -70,15 +70,19 @@ struct RootView: View {
     @ObservedObject var controller: AppController
     @State private var hover = false
     @State private var lastMove: CGSize = .zero
+    @State private var lastPtr: CGPoint? = nil
+    @State private var lastPtrT = Date()
+    @State private var ptrV = CGSize.zero
     private let accent = Color(red: 0.851, green: 0.678, blue: 0.322)
 
     var body: some View {
         GeometryReader { geo in
             let barY = ChimeView.chimeBottomY(geo.size) + 18   // just under the bells
             ZStack(alignment: .topLeading) {
-                // Drag the chime itself to move the window (no move-arrow needed).
+                // Drag the chime to move the window; tap a bell to ring it.
                 ChimeView(engine: controller.engine)
                     .frame(width: geo.size.width, height: geo.size.height)
+                    .contentShape(Rectangle())
                     .gesture(
                         DragGesture(coordinateSpace: .global)
                             .onChanged { v in
@@ -87,6 +91,14 @@ struct RootView: View {
                                 lastMove = v.translation
                             }
                             .onEnded { _ in lastMove = .zero }
+                    )
+                    .simultaneousGesture(
+                        SpatialTapGesture(coordinateSpace: .local)
+                            .onEnded { v in
+                                controller.engine.viewW = Double(geo.size.width)
+                                controller.engine.viewH = Double(geo.size.height)
+                                controller.engine.tap(x: Double(v.location.x), y: Double(v.location.y))
+                            }
                     )
                 controlBar
                     .position(x: geo.size.width / 2, y: barY)
@@ -99,7 +111,28 @@ struct RootView: View {
             }
             .frame(width: geo.size.width, height: geo.size.height)
             .animation(.easeInOut(duration: 0.25), value: hover)
-            .onHover { hover = $0 }
+            .onContinuousHover(coordinateSpace: .local) { phase in
+                switch phase {
+                case .active(let loc):
+                    hover = true
+                    let now = Date()
+                    if let lp = lastPtr {
+                        let dt = max(0.004, now.timeIntervalSince(lastPtrT))
+                        ptrV = CGSize(width: ptrV.width * 0.5 + Double(loc.x - lp.x) / dt * 0.5,
+                                      height: ptrV.height * 0.5 + Double(loc.y - lp.y) / dt * 0.5)
+                    }
+                    lastPtr = loc
+                    lastPtrT = now
+                    controller.engine.viewW = Double(geo.size.width)
+                    controller.engine.viewH = Double(geo.size.height)
+                    controller.engine.brush(x: Double(loc.x), y: Double(loc.y),
+                                            vx: Double(ptrV.width), vy: Double(ptrV.height))
+                case .ended:
+                    hover = false
+                    lastPtr = nil
+                    ptrV = .zero
+                }
+            }
         }
     }
 
