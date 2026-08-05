@@ -4,3 +4,7 @@
 
 Windchime.app/
 build/icon.iconset/
+
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/

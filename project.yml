@@ -1,0 +1,42 @@
+# XcodeGen spec — generates Windchime.xcodeproj (the App Store archive vehicle).
+# Regenerate with:  xcodegen generate
+name: Windchime
+options:
+  bundleIdPrefix: com.shivami
+  deploymentTarget:
+    macOS: "13.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "2.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    # Leave DEVELOPMENT_TEAM empty — you pick your team in Xcode's Signing tab.
+    DEVELOPMENT_TEAM: ""
+targets:
+  Windchime:
+    type: application
+    platform: macOS
+    sources:
+      - Sources/Windchime
+      - path: Windchime/Assets.xcassets
+      - path: PrivacyInfo.xcprivacy
+    settings:
+      base:
+        PRODUCT_NAME: Windchime
+        PRODUCT_BUNDLE_IDENTIFIER: com.shivami.windchime
+        CODE_SIGN_ENTITLEMENTS: Windchime.entitlements
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_HARDENED_RUNTIME: NO   # Mac App Store uses App Sandbox, not hardened runtime
+    info:
+      path: Windchime/Info.plist
+      properties:
+        CFBundleName: Windchime
+        CFBundleDisplayName: Windchime
+        CFBundleShortVersionString: "2.0.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+        NSHighResolutionCapable: true
+        LSApplicationCategoryType: public.app-category.lifestyle
+        NSMicrophoneUsageDescription: "Windchime listens for the sound of your breath to make the chimes ring. Audio never leaves your device."
