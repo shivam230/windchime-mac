@@ -3,7 +3,7 @@
 Everything for the App Store Connect forms. Character limits noted.
 
 ## Identity
-- **App Name** (≤30): `Windchime`
+- **App Name** (≤30): `Windchime Breeze`  (plain "Windchime" was taken; the in-app / Dock name stays "Windchime")
 - **Subtitle** (≤30): `A calm chime for your desktop`
 - **Bundle ID**: `com.shivami.windchime`
 - **Primary category**: Lifestyle

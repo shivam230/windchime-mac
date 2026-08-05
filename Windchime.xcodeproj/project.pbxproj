@@ -23,7 +23,7 @@
 		2F951D213077B60BCE431D6B /* Windchime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Windchime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		800F021A8F523DE157A573C2 /* Controls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controls.swift; sourceTree = "<group>"; };
 		AFB5287B1BB9ED460D962337 /* ChimeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChimeView.swift; sourceTree = "<group>"; };
-		D06D77BA98CF9E08D0E1A859 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D06D77BA98CF9E08D0E1A859 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		EBF024840C7C5025CA966575 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F0E6384DF223AD8848F02283 /* MicDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicDetector.swift; sourceTree = "<group>"; };
 		FC1689981B82277B76A6E722 /* AudioEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioEngine.swift; sourceTree = "<group>"; };
@@ -108,7 +108,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					748826B92763EA6B24CC244E = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -167,6 +166,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Windchime.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 85L424QLY6;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Windchime/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -312,6 +312,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Windchime.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 85L424QLY6;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = Windchime/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
