@@ -36,7 +36,9 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 
-# Ad-hoc sign WITH the sandbox + mic entitlements, so the local build behaves
-# like the App Store one (real distribution re-signs with your Apple cert).
-codesign --force --deep --sign - --entitlements Windchime.entitlements "$APP" 2>/dev/null || true
+# Ad-hoc sign the LOCAL build WITHOUT the sandbox. An ad-hoc-signed sandboxed
+# app can't persist the microphone TCC grant, so it re-prompts on a loop. The
+# App Store build is different: Xcode applies Windchime.entitlements (sandbox +
+# mic) and signs with your real Apple certificate, where the mic works fine.
+codesign --force --deep --sign - "$APP" 2>/dev/null || true
 echo "built $APP ($(lipo -archs "$APP/Contents/MacOS/Windchime" 2>/dev/null))"
